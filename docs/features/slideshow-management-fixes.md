@@ -89,6 +89,11 @@ This is a bug fix, so per the feature guidelines it begins with regression tests
 ## Progress
 
 - [x] Planning complete; design decisions approved by human (2026-06-06)
-- [ ] Milestone 1: Allow deletion of inactive slideshow items
+- [x] Milestone 1: Allow deletion of inactive slideshow items (2026-06-06)
+  - Task 1.1: Regression tests added (2 unit, 1 Playwright); confirmed initially failing with 404.
+  - Task 1.2: `delete_slideshow_item()` now implements two-stage delete (active → soft delete, inactive → hard delete).
+  - Task 1.3: Admin UI shows a "permanently delete ... cannot be undone" confirmation for inactive items; frontend unit test added.
+  - Task 1.4: All tests passing — 671 unit, 173 integration, 133 frontend; `format`, `lint`, `type_check`, frontend `type-check`/`lint` clean.
+  - Side quest (human-approved): black 26.5.x formats for Python 3.14 (PEP 758 except clauses, string hugging) which mypy rejected under `mypy.ini` `python_version = 3.13`. Resolved by embracing the new black style: `mypy.ini` now targets 3.14 and the stale `black!=26.1.0` exclusion was removed from `noxfile.py`.
 - [ ] Milestone 2: Duplicate slideshow
 - [ ] Milestone 3: Acceptance Criteria
