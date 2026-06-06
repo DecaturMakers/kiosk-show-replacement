@@ -9,6 +9,7 @@ import hashlib
 import json
 import logging
 import mimetypes
+import shutil
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -616,6 +617,58 @@ class StorageManager:
         except Exception as e:
             logger.error(f"Failed to save file {file.filename}: {e}")
             return False, f"Failed to save file: {str(e)}", None
+
+    def copy_file_to_slideshow(
+        self, file_path: str, user_id: int, dest_slideshow_id: int
+    ) -> Optional[str]:
+        """
+        Copy an existing uploaded file into another slideshow's directory.
+
+        Used when duplicating a slideshow so the duplicate owns independent
+        copies of uploaded media files rather than referencing the original
+        slideshow's files.
+
+        Args:
+            file_path: Relative path of the source file from the upload
+                folder (as stored in SlideshowItem.content_file_path)
+            user_id: ID of the user owning the destination slideshow
+            dest_slideshow_id: ID of the destination slideshow
+
+        Returns:
+            The new relative file path on success, or None if the source
+            file does not exist or the copy fails.
+        """
+        try:
+            relative = file_path.lstrip("/")
+            if relative.startswith("uploads/"):
+                relative = relative[len("uploads/") :]
+            source = self.base_path / relative
+            if not source.is_file():
+                logger.warning(f"Source file not found for copy: {file_path}")
+                return None
+
+            # First path component is the content directory
+            # ('images' or 'videos')
+            content_dir = Path(relative).parts[0]
+            dest_dir = self.get_upload_path(content_dir, user_id, dest_slideshow_id)
+            secure_name = self.generate_secure_filename(
+                source.name, user_id, dest_slideshow_id
+            )
+            dest = dest_dir / secure_name
+            shutil.copy2(source, dest)
+
+            new_path = str(dest.relative_to(self.base_path))
+            logger.info(
+                f"Copied file {file_path} to {new_path} for "
+                f"slideshow {dest_slideshow_id}"
+            )
+            return new_path
+        except Exception as e:
+            logger.error(
+                f"Failed to copy file {file_path} to slideshow "
+                f"{dest_slideshow_id}: {e}"
+            )
+            return None
 
     def delete_file(self, file_path: str) -> Tuple[bool, str]:
         """

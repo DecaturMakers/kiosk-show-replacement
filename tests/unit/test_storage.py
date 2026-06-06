@@ -193,6 +193,56 @@ class TestStorageManager:
         assert not success
         assert "not found" in message
 
+    def test_copy_file_to_slideshow_success(
+        self, storage_manager, sample_image_file, temp_storage_dir, app
+    ):
+        """Test copying an uploaded file to another slideshow's directory."""
+        with app.app_context():
+            # Save a file for user 1, slideshow 2
+            success, _, file_info = storage_manager.save_file(
+                sample_image_file, "image", 1, 2
+            )
+            assert success
+            source_path = file_info["file_path"]
+
+            # Copy it to slideshow 5
+            new_path = storage_manager.copy_file_to_slideshow(source_path, 1, 5)
+
+            assert new_path is not None
+            assert new_path != source_path
+            assert new_path.startswith("images/1/5/")
+
+            # Both source and copy exist and have identical content
+            source_file = Path(temp_storage_dir) / source_path
+            copied_file = Path(temp_storage_dir) / new_path
+            assert source_file.is_file()
+            assert copied_file.is_file()
+            assert copied_file.read_bytes() == source_file.read_bytes()
+
+    def test_copy_file_to_slideshow_handles_uploads_prefix(
+        self, storage_manager, sample_image_file, temp_storage_dir, app
+    ):
+        """Test copying when the stored path has a leading uploads/ prefix."""
+        with app.app_context():
+            success, _, file_info = storage_manager.save_file(
+                sample_image_file, "image", 1, 2
+            )
+            assert success
+
+            prefixed_path = f"/uploads/{file_info['file_path']}"
+            new_path = storage_manager.copy_file_to_slideshow(prefixed_path, 1, 5)
+
+            assert new_path is not None
+            assert new_path.startswith("images/1/5/")
+            assert (Path(temp_storage_dir) / new_path).is_file()
+
+    def test_copy_file_to_slideshow_missing_source(self, storage_manager):
+        """Test copying a non-existent source file returns None."""
+        new_path = storage_manager.copy_file_to_slideshow(
+            "images/1/2/does_not_exist.png", 1, 5
+        )
+        assert new_path is None
+
     def test_cleanup_slideshow_files(self, storage_manager, sample_image_file, app):
         """Test cleanup of slideshow files."""
         with app.app_context():
