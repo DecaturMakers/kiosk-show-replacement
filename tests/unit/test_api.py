@@ -571,6 +571,103 @@ class TestSlideshowDuplicateAPI:
         data = response.get_json()
         assert data["success"] is False
 
+    def test_duplicate_slideshow_no_data(
+        self, client, authenticated_user, sample_slideshow
+    ):
+        """Test duplicating without a request body fails."""
+        response = client.post(
+            f"/api/v1/slideshows/{sample_slideshow.id}/duplicate",
+            data=json.dumps(None),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["success"] is False
+
+    def test_duplicate_slideshow_name_conflict_with_inactive(
+        self, client, authenticated_user, sample_slideshow
+    ):
+        """Test the unique-constraint backstop for name conflicts.
+
+        An inactive slideshow's name passes the active-only duplicate-name
+        check but still violates the (name, owner_id) unique constraint when
+        the new row is flushed, exercising the IntegrityError handler.
+        """
+        inactive = Slideshow(
+            name="Shadowed Name",
+            owner_id=authenticated_user.id,
+            is_active=False,
+        )
+        db.session.add(inactive)
+        db.session.commit()
+
+        response = client.post(
+            f"/api/v1/slideshows/{sample_slideshow.id}/duplicate",
+            data=json.dumps({"name": "Shadowed Name"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["success"] is False
+        assert "already exists" in data["message"]
+
+    @patch("kiosk_show_replacement.api.v1.get_storage_manager")
+    def test_duplicate_slideshow_cleanup_on_failure(
+        self,
+        mock_get_storage,
+        client,
+        authenticated_user,
+        sample_slideshow,
+        tmp_path,
+    ):
+        """Test that copied files are removed when the duplicate fails."""
+        from kiosk_show_replacement.storage import StorageManager
+
+        storage = StorageManager(str(tmp_path))
+        mock_get_storage.return_value = storage
+
+        # Give the source a file-backed item so the duplicate copies a file
+        source_dir = (
+            tmp_path / "images" / str(authenticated_user.id) / str(sample_slideshow.id)
+        )
+        source_dir.mkdir(parents=True)
+        source_file = source_dir / "photo.png"
+        source_file.write_bytes(b"fake png content")
+        item = SlideshowItem(
+            slideshow_id=sample_slideshow.id,
+            title="Uploaded Image",
+            content_type="image",
+            content_file_path=str(source_file.relative_to(tmp_path)),
+            order_index=1,
+            is_active=True,
+        )
+        db.session.add(item)
+        db.session.commit()
+
+        # Fail the final commit, after items are processed and files copied
+        with patch.object(
+            db.session, "commit", side_effect=RuntimeError("simulated commit failure")
+        ):
+            response = client.post(
+                f"/api/v1/slideshows/{sample_slideshow.id}/duplicate",
+                data=json.dumps({"name": "Doomed Copy"}),
+                content_type="application/json",
+            )
+
+        assert response.status_code == 500
+        data = response.get_json()
+        assert data["success"] is False
+
+        # The copied file was cleaned up; only the source file remains
+        assert [p for p in tmp_path.rglob("*") if p.is_file()] == [source_file]
+
+        # No duplicate slideshow was persisted
+        assert (
+            Slideshow.query.filter_by(name="Doomed Copy").first() is None
+        )
+
     def test_duplicate_slideshow_not_found(self, client, authenticated_user):
         """Test duplicating a non-existent slideshow returns 404."""
         response = client.post(
