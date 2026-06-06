@@ -636,11 +636,22 @@ class StorageManager:
 
         Returns:
             The new relative file path on success, or None if the source
-            file does not exist or the copy fails.
+            file does not exist, resolves outside the upload folder, or
+            the copy fails.
         """
         try:
             relative = file_path.lstrip("/").removeprefix("uploads/")
-            source = self.base_path / relative
+            source = (self.base_path / relative).resolve()
+
+            # Guard against path traversal: content_file_path is writable
+            # via the API, so the resolved source must stay inside the
+            # upload folder.
+            if not source.is_relative_to(self.base_path.resolve()):
+                logger.warning(
+                    f"Refusing to copy file outside upload folder: {file_path}"
+                )
+                return None
+
             if not source.is_file():
                 logger.warning(f"Source file not found for copy: {file_path}")
                 return None

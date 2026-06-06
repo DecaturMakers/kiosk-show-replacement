@@ -243,6 +243,30 @@ class TestStorageManager:
         )
         assert new_path is None
 
+    def test_copy_file_to_slideshow_rejects_path_traversal(
+        self, storage_manager, temp_storage_dir
+    ):
+        """Test that paths resolving outside the upload folder are refused."""
+        # Create a real file outside the upload folder that a crafted
+        # content_file_path could try to reach
+        outside_dir = Path(temp_storage_dir).parent / "outside"
+        outside_dir.mkdir(exist_ok=True)
+        secret_file = outside_dir / "secret.txt"
+        secret_file.write_text("secret data")
+
+        try:
+            new_path = storage_manager.copy_file_to_slideshow(
+                "images/../../outside/secret.txt", 1, 5
+            )
+            assert new_path is None
+            # Nothing was copied into the upload folder
+            assert [
+                p for p in Path(temp_storage_dir).rglob("*") if p.is_file()
+            ] == []
+        finally:
+            secret_file.unlink()
+            outside_dir.rmdir()
+
     def test_cleanup_slideshow_files(self, storage_manager, sample_image_file, app):
         """Test cleanup of slideshow files."""
         with app.app_context():

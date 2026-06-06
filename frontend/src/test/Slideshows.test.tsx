@@ -76,6 +76,11 @@ describe('Slideshows', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    // Restore window.confirm/window.prompt spies even if a test fails
+    vi.restoreAllMocks();
+  });
+
   it('renders loading state initially', () => {
     mockApiCall.mockImplementation(() => new Promise(() => {})); // Never resolves
 
@@ -172,9 +177,8 @@ describe('Slideshows', () => {
       .mockResolvedValueOnce({ success: true, data: { ...mockSlideshows[0], id: 3, name: 'My Copy' } })
       .mockResolvedValueOnce({ success: true, data: mockSlideshows });
 
-    // Mock window.prompt
-    const originalPrompt = window.prompt;
-    window.prompt = vi.fn(() => 'My Copy');
+    // Spy on window.prompt; restored by afterEach even if the test fails
+    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue('My Copy');
 
     render(
       <TestWrapper>
@@ -190,7 +194,7 @@ describe('Slideshows', () => {
     const duplicateButtons = screen.getAllByTitle('Duplicate');
     fireEvent.click(duplicateButtons[0]);
 
-    expect(window.prompt).toHaveBeenCalledWith(
+    expect(promptSpy).toHaveBeenCalledWith(
       'Enter a name for the duplicated slideshow:',
       'Test Slideshow 1 (Copy)'
     );
@@ -201,17 +205,13 @@ describe('Slideshows', () => {
         body: JSON.stringify({ name: 'My Copy' })
       });
     });
-
-    // Cleanup
-    window.prompt = originalPrompt;
   });
 
   it('does not duplicate when prompt is cancelled', async () => {
     mockApiCall.mockResolvedValueOnce({ success: true, data: mockSlideshows });
 
-    // Mock window.prompt returning null (cancelled)
-    const originalPrompt = window.prompt;
-    window.prompt = vi.fn(() => null);
+    // Spy on window.prompt returning null (cancelled)
+    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue(null);
 
     render(
       <TestWrapper>
@@ -226,19 +226,15 @@ describe('Slideshows', () => {
     const duplicateButtons = screen.getAllByTitle('Duplicate');
     fireEvent.click(duplicateButtons[0]);
 
-    expect(window.prompt).toHaveBeenCalled();
+    expect(promptSpy).toHaveBeenCalled();
     // Only the initial fetch should have happened - no duplicate API call
     expect(mockApiCall).toHaveBeenCalledTimes(1);
-
-    // Cleanup
-    window.prompt = originalPrompt;
   });
 
   it('shows error when duplicate name is empty', async () => {
     mockApiCall.mockResolvedValueOnce({ success: true, data: mockSlideshows });
 
-    const originalPrompt = window.prompt;
-    window.prompt = vi.fn(() => '   ');
+    vi.spyOn(window, 'prompt').mockReturnValue('   ');
 
     render(
       <TestWrapper>
@@ -258,9 +254,6 @@ describe('Slideshows', () => {
     });
     // Only the initial fetch should have happened - no duplicate API call
     expect(mockApiCall).toHaveBeenCalledTimes(1);
-
-    // Cleanup
-    window.prompt = originalPrompt;
   });
 
   it('shows error when duplicate fails', async () => {
@@ -271,8 +264,7 @@ describe('Slideshows', () => {
         error: 'A slideshow with this name already exists'
       });
 
-    const originalPrompt = window.prompt;
-    window.prompt = vi.fn(() => 'Test Slideshow 2');
+    vi.spyOn(window, 'prompt').mockReturnValue('Test Slideshow 2');
 
     render(
       <TestWrapper>
@@ -290,9 +282,6 @@ describe('Slideshows', () => {
     await waitFor(() => {
       expect(screen.getByText('A slideshow with this name already exists')).toBeInTheDocument();
     });
-
-    // Cleanup
-    window.prompt = originalPrompt;
   });
 
   it('handles set default slideshow', async () => {

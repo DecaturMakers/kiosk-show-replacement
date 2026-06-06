@@ -122,6 +122,11 @@ describe('SlideshowDetail', () => {
     mockNavigate.mockClear();
   });
 
+  afterEach(() => {
+    // Restore window.confirm/window.prompt spies even if a test fails
+    vi.restoreAllMocks();
+  });
+
   it('renders slideshow details correctly', async () => {
     mockUseParams.mockReturnValue({ id: '1' });
     mockApiCall
@@ -237,9 +242,8 @@ describe('SlideshowDetail', () => {
       .mockResolvedValueOnce({ success: true, data: mockSlideshow })
       .mockResolvedValueOnce({ success: true, data: [] });
 
-    // Mock window.confirm
-    const originalConfirm = window.confirm;
-    window.confirm = vi.fn(() => true);
+    // Spy on window.confirm; restored by afterEach even if the test fails
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     render(
       <TestWrapper>
@@ -255,16 +259,13 @@ describe('SlideshowDetail', () => {
     const deleteButtons = screen.getAllByTitle('Delete');
     fireEvent.click(deleteButtons[0]);
 
-    expect(window.confirm).toHaveBeenCalledWith(
+    expect(confirmSpy).toHaveBeenCalledWith(
       'Are you sure you want to permanently delete "Test Image"? This cannot be undone.'
     );
 
     await waitFor(() => {
       expect(mockApiCall).toHaveBeenCalledWith('/api/v1/slideshow-items/1', { method: 'DELETE' });
     });
-
-    // Cleanup
-    window.confirm = originalConfirm;
   });
 
   it('handles add new item', async () => {
