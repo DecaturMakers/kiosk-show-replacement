@@ -1263,9 +1263,9 @@ class TestSlideshowItems:
 
         # The item should be permanently removed from the list
         page.wait_for_timeout(1000)  # Allow time for API call and UI refresh
-        expect(
-            page.locator("tr:has-text('Inactive Item To Delete')")
-        ).to_have_count(0, timeout=10000)
+        expect(page.locator("tr:has-text('Inactive Item To Delete')")).to_have_count(
+            0, timeout=10000
+        )
 
     def test_reorder_items_move_up(
         self,
@@ -1932,8 +1932,7 @@ class TestSlideshowItems:
         # Set slider value to 50 using JavaScript
         # React uses 'input' event for range inputs, and needs special handling
         # to properly trigger React's synthetic event system
-        page.evaluate(
-            """() => {
+        page.evaluate("""() => {
             const slider = document.querySelector('#scale_factor');
             // Use native value setter to bypass React's controlled input
             const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
@@ -1942,8 +1941,7 @@ class TestSlideshowItems:
             nativeInputValueSetter.call(slider, '50');
             // Dispatch input event to trigger React onChange
             slider.dispatchEvent(new Event('input', { bubbles: true }));
-        }"""
-        )
+        }""")
 
         # Verify label updated
         zoom_label = page.locator("label[for='scale_factor']")
@@ -2033,8 +2031,7 @@ class TestSlideshowItems:
         # Set zoom to 25% using JavaScript
         # React uses 'input' event for range inputs, and needs special handling
         # to properly trigger React's synthetic event system
-        page.evaluate(
-            """() => {
+        page.evaluate("""() => {
             const slider = document.querySelector('#scale_factor');
             // Use native value setter to bypass React's controlled input
             const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
@@ -2043,8 +2040,7 @@ class TestSlideshowItems:
             nativeInputValueSetter.call(slider, '25');
             // Dispatch input event to trigger React onChange
             slider.dispatchEvent(new Event('input', { bubbles: true }));
-        }"""
-        )
+        }""")
 
         # Submit the form
         page.locator("button[type='submit']").click()
@@ -2161,16 +2157,14 @@ class TestSlideshowItems:
         ), f"Expected scale(1) at 100%, got: {initial_style}"
 
         # Set zoom to 50% using JavaScript
-        page.evaluate(
-            """() => {
+        page.evaluate("""() => {
             const slider = document.querySelector('#scale_factor');
             const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
                 window.HTMLInputElement.prototype, 'value'
             ).set;
             nativeInputValueSetter.call(slider, '50');
             slider.dispatchEvent(new Event('input', { bubbles: true }));
-        }"""
-        )
+        }""")
 
         # Wait a moment for React to re-render
         page.wait_for_timeout(500)
@@ -2234,16 +2228,14 @@ class TestSlideshowItems:
         expect(preview_iframe).to_have_css("opacity", "1", timeout=5000)
 
         # Change zoom slider to 50% using JavaScript
-        page.evaluate(
-            """() => {
+        page.evaluate("""() => {
             const slider = document.querySelector('#scale_factor');
             const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
                 window.HTMLInputElement.prototype, 'value'
             ).set;
             nativeInputValueSetter.call(slider, '50');
             slider.dispatchEvent(new Event('input', { bubbles: true }));
-        }"""
-        )
+        }""")
 
         # Wait for React to re-render
         page.wait_for_timeout(500)

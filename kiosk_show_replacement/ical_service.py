@@ -275,7 +275,7 @@ def get_all_feed_spaces(feed: ICalFeed) -> list[str]:
         try:
             resources = json.loads(event.resources) if event.resources else []
             spaces_set.update(resources)
-        except (json.JSONDecodeError, TypeError):
+        except json.JSONDecodeError, TypeError:
             pass
 
     return sorted(spaces_set)

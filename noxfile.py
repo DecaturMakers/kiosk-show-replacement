@@ -23,9 +23,7 @@ DOCS_DIR = "docs"
 @nox.session(python=DEFAULT_PYTHON)
 def format(session):
     """Format code with black and isort."""
-    # Exclude black 26.1.0 due to bug that converts valid Python 3 except syntax
-    # `except (X, Y):` to invalid Python 2 syntax `except X, Y:`
-    session.install("black!=26.1.0", "isort")
+    session.install("black", "isort")
     session.run("black", PACKAGE_DIR, TEST_DIR, "noxfile.py")
     session.run("isort", PACKAGE_DIR, TEST_DIR, "noxfile.py")
 
