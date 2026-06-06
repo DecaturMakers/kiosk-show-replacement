@@ -227,6 +227,46 @@ describe('SlideshowDetail', () => {
     window.confirm = originalConfirm;
   });
 
+  it('handles delete of inactive item with permanent-delete confirmation', async () => {
+    const inactiveItem = { ...mockItems[0], is_active: false };
+    mockUseParams.mockReturnValue({ id: '1' });
+    mockApiCall
+      .mockResolvedValueOnce({ success: true, data: mockSlideshow })
+      .mockResolvedValueOnce({ success: true, data: [inactiveItem] })
+      .mockResolvedValueOnce({ success: true })
+      .mockResolvedValueOnce({ success: true, data: mockSlideshow })
+      .mockResolvedValueOnce({ success: true, data: [] });
+
+    // Mock window.confirm
+    const originalConfirm = window.confirm;
+    window.confirm = vi.fn(() => true);
+
+    render(
+      <TestWrapper>
+        <SlideshowDetail />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Image')).toBeInTheDocument();
+    });
+
+    // Click delete button for the inactive item
+    const deleteButtons = screen.getAllByTitle('Delete');
+    fireEvent.click(deleteButtons[0]);
+
+    expect(window.confirm).toHaveBeenCalledWith(
+      'Are you sure you want to permanently delete "Test Image"? This cannot be undone.'
+    );
+
+    await waitFor(() => {
+      expect(mockApiCall).toHaveBeenCalledWith('/api/v1/slideshow-items/1', { method: 'DELETE' });
+    });
+
+    // Cleanup
+    window.confirm = originalConfirm;
+  });
+
   it('handles add new item', async () => {
     mockUseParams.mockReturnValue({ id: '1' });
     mockApiCall
