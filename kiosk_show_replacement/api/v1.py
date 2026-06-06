@@ -725,34 +725,47 @@ def update_slideshow_item(item_id: int) -> Tuple[Response, int]:
 @api_v1_bp.route("/slideshow-items/<int:item_id>", methods=["DELETE"])
 @api_auth_required
 def delete_slideshow_item(item_id: int) -> Tuple[Response, int]:
-    """Delete a slideshow item (soft delete) - all users can delete all items."""
+    """Delete a slideshow item - all users can delete all items.
+
+    Deletion is two-stage: deleting an active item soft-deletes it
+    (sets is_active=False, so it can still be reactivated), while
+    deleting an already-inactive item permanently removes it from
+    the database.
+    """
     try:
         current_user = get_current_user()
         if not current_user:
             return api_error("Authentication required", 401)
 
         item = db.session.get(SlideshowItem, item_id)
-        if not item or not item.is_active:
+        if not item:
             return api_error("Slideshow item not found", 404)
 
         slideshow = item.slideshow
         if not slideshow.is_active:
             return api_error("Slideshow item not found", 404)
 
-        # Soft delete
-        item.is_active = False
-        item.updated_by_id = current_user.id
+        # Capture identifying info before commit; a hard-deleted item's
+        # attributes are no longer accessible after the commit.
+        item_title = item.title
+        if item.is_active:
+            # Soft delete: deactivate the item but keep the row
+            item.is_active = False
+            item.updated_by_id = current_user.id
+        else:
+            # Hard delete: permanently remove an already-inactive item
+            db.session.delete(item)
         db.session.commit()
 
         # Broadcast slideshow update to displays showing this slideshow
         broadcast_slideshow_update(
             slideshow,
             "updated",
-            {"updated_by": current_user.username, "item_deleted": item.id},
+            {"updated_by": current_user.username, "item_deleted": item_id},
         )
 
         current_app.logger.info(
-            f"User {current_user.username} deleted item {item.title}"
+            f"User {current_user.username} deleted item {item_title}"
         )
         return api_response(None, "Slideshow item deleted successfully")
 
