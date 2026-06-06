@@ -364,6 +364,110 @@ def set_default_slideshow(slideshow_id: int) -> Tuple[Response, int]:
         return api_error("Failed to set default slideshow", 500)
 
 
+@api_v1_bp.route("/slideshows/<int:slideshow_id>/duplicate", methods=["POST"])
+@api_auth_required
+def duplicate_slideshow(slideshow_id: int) -> Tuple[Response, int]:
+    """Duplicate a slideshow under a new name.
+
+    Creates a copy of the slideshow and all of its items, including
+    inactive ones. Uploaded media files are copied into the new
+    slideshow's upload directory so the duplicate is fully independent
+    of the original. The duplicate is owned by the current user and is
+    never the default slideshow.
+    """
+    current_user = get_current_user()
+    assert current_user is not None  # Guaranteed by @api_auth_required
+
+    source = db.session.get(Slideshow, slideshow_id)
+    if not source or not source.is_active:
+        raise NotFoundError(
+            "Slideshow not found", resource_type="slideshow", resource_id=slideshow_id
+        )
+
+    data = request.get_json()
+    if not data:
+        raise ValidationError("No data provided")
+
+    name = data.get("name", "").strip()
+    if not name:
+        raise ValidationError("Slideshow name is required", field="name")
+
+    # Check for global duplicate names (not per-user), matching create_slideshow
+    existing = Slideshow.query.filter_by(name=name, is_active=True).first()
+    if existing:
+        raise ValidationError("A slideshow with this name already exists", field="name")
+
+    storage = get_storage_manager()
+    copied_files: list[str] = []
+    try:
+        duplicate = Slideshow(
+            name=name,
+            description=source.description,
+            default_item_duration=source.default_item_duration,
+            transition_type=source.transition_type,
+            owner_id=current_user.id,
+            created_by_id=current_user.id,
+            updated_by_id=current_user.id,
+            is_active=True,
+            is_default=False,
+        )
+        db.session.add(duplicate)
+        # Flush to obtain the new slideshow's id for item rows and file copies
+        db.session.flush()
+
+        for item in source.items:
+            content_file_path = item.content_file_path
+            if content_file_path:
+                # Copy the uploaded file so the duplicate does not depend on
+                # the original slideshow's per-slideshow upload directory.
+                # A missing source file degrades to no file rather than
+                # failing the whole duplicate.
+                content_file_path = storage.copy_file_to_slideshow(
+                    content_file_path, current_user.id, duplicate.id
+                )
+                if content_file_path:
+                    copied_files.append(content_file_path)
+
+            db.session.add(
+                SlideshowItem(
+                    slideshow_id=duplicate.id,
+                    title=item.title,
+                    content_type=item.content_type,
+                    content_url=item.content_url,
+                    content_text=item.content_text,
+                    content_file_path=content_file_path,
+                    display_duration=item.display_duration,
+                    order_index=item.order_index,
+                    is_active=item.is_active,
+                    scale_factor=item.scale_factor,
+                    ical_feed_id=item.ical_feed_id,
+                    ical_refresh_minutes=item.ical_refresh_minutes,
+                    created_by_id=current_user.id,
+                    updated_by_id=current_user.id,
+                )
+            )
+
+        db.session.commit()
+
+    except IntegrityError:
+        db.session.rollback()
+        for path in copied_files:
+            storage.delete_file(path)
+        raise ValidationError("A slideshow with this name already exists", field="name")
+    except Exception as e:
+        db.session.rollback()
+        for path in copied_files:
+            storage.delete_file(path)
+        current_app.logger.error(f"Error duplicating slideshow {slideshow_id}: {e}")
+        return api_error("Failed to duplicate slideshow", 500)
+
+    current_app.logger.info(
+        f"User {current_user.username} duplicated slideshow "
+        f"'{source.name}' as '{duplicate.name}'"
+    )
+    return api_response(duplicate.to_dict(), "Slideshow duplicated successfully", 201)
+
+
 # =============================================================================
 # Slideshow Item API Endpoints
 # =============================================================================
