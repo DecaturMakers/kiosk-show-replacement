@@ -623,10 +623,7 @@ class TestSlideshowDuplicateAPI:
 
         # Create a fake uploaded image in the source slideshow's directory
         source_dir = (
-            tmp_path
-            / "images"
-            / str(authenticated_user.id)
-            / str(sample_slideshow.id)
+            tmp_path / "images" / str(authenticated_user.id) / str(sample_slideshow.id)
         )
         source_dir.mkdir(parents=True)
         source_file = source_dir / "photo.png"
@@ -654,9 +651,7 @@ class TestSlideshowDuplicateAPI:
         data = response.get_json()
         duplicate = db.session.get(Slideshow, data["data"]["id"])
 
-        copied_item = next(
-            i for i in duplicate.items if i.title == "Uploaded Image"
-        )
+        copied_item = next(i for i in duplicate.items if i.title == "Uploaded Image")
         # The copy references a new file in the duplicate's directory
         assert copied_item.content_file_path is not None
         assert copied_item.content_file_path != relative_path

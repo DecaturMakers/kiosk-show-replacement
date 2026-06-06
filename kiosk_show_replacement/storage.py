@@ -639,9 +639,7 @@ class StorageManager:
             file does not exist or the copy fails.
         """
         try:
-            relative = file_path.lstrip("/")
-            if relative.startswith("uploads/"):
-                relative = relative[len("uploads/") :]
+            relative = file_path.lstrip("/").removeprefix("uploads/")
             source = self.base_path / relative
             if not source.is_file():
                 logger.warning(f"Source file not found for copy: {file_path}")
