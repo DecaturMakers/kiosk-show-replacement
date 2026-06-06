@@ -166,6 +166,135 @@ describe('Slideshows', () => {
     window.confirm = originalConfirm;
   });
 
+  it('handles duplicate slideshow', async () => {
+    mockApiCall
+      .mockResolvedValueOnce({ success: true, data: mockSlideshows })
+      .mockResolvedValueOnce({ success: true, data: { ...mockSlideshows[0], id: 3, name: 'My Copy' } })
+      .mockResolvedValueOnce({ success: true, data: mockSlideshows });
+
+    // Mock window.prompt
+    const originalPrompt = window.prompt;
+    window.prompt = vi.fn(() => 'My Copy');
+
+    render(
+      <TestWrapper>
+        <Slideshows />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Slideshow 1')).toBeInTheDocument();
+    });
+
+    // Click duplicate button for first slideshow
+    const duplicateButtons = screen.getAllByTitle('Duplicate');
+    fireEvent.click(duplicateButtons[0]);
+
+    expect(window.prompt).toHaveBeenCalledWith(
+      'Enter a name for the duplicated slideshow:',
+      'Test Slideshow 1 (Copy)'
+    );
+
+    await waitFor(() => {
+      expect(mockApiCall).toHaveBeenCalledWith('/api/v1/slideshows/1/duplicate', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'My Copy' })
+      });
+    });
+
+    // Cleanup
+    window.prompt = originalPrompt;
+  });
+
+  it('does not duplicate when prompt is cancelled', async () => {
+    mockApiCall.mockResolvedValueOnce({ success: true, data: mockSlideshows });
+
+    // Mock window.prompt returning null (cancelled)
+    const originalPrompt = window.prompt;
+    window.prompt = vi.fn(() => null);
+
+    render(
+      <TestWrapper>
+        <Slideshows />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Slideshow 1')).toBeInTheDocument();
+    });
+
+    const duplicateButtons = screen.getAllByTitle('Duplicate');
+    fireEvent.click(duplicateButtons[0]);
+
+    expect(window.prompt).toHaveBeenCalled();
+    // Only the initial fetch should have happened - no duplicate API call
+    expect(mockApiCall).toHaveBeenCalledTimes(1);
+
+    // Cleanup
+    window.prompt = originalPrompt;
+  });
+
+  it('shows error when duplicate name is empty', async () => {
+    mockApiCall.mockResolvedValueOnce({ success: true, data: mockSlideshows });
+
+    const originalPrompt = window.prompt;
+    window.prompt = vi.fn(() => '   ');
+
+    render(
+      <TestWrapper>
+        <Slideshows />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Slideshow 1')).toBeInTheDocument();
+    });
+
+    const duplicateButtons = screen.getAllByTitle('Duplicate');
+    fireEvent.click(duplicateButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('A name is required to duplicate a slideshow')).toBeInTheDocument();
+    });
+    // Only the initial fetch should have happened - no duplicate API call
+    expect(mockApiCall).toHaveBeenCalledTimes(1);
+
+    // Cleanup
+    window.prompt = originalPrompt;
+  });
+
+  it('shows error when duplicate fails', async () => {
+    mockApiCall
+      .mockResolvedValueOnce({ success: true, data: mockSlideshows })
+      .mockResolvedValueOnce({
+        success: false,
+        error: 'A slideshow with this name already exists'
+      });
+
+    const originalPrompt = window.prompt;
+    window.prompt = vi.fn(() => 'Test Slideshow 2');
+
+    render(
+      <TestWrapper>
+        <Slideshows />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Slideshow 1')).toBeInTheDocument();
+    });
+
+    const duplicateButtons = screen.getAllByTitle('Duplicate');
+    fireEvent.click(duplicateButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('A slideshow with this name already exists')).toBeInTheDocument();
+    });
+
+    // Cleanup
+    window.prompt = originalPrompt;
+  });
+
   it('handles set default slideshow', async () => {
     mockApiCall
       .mockResolvedValueOnce({ success: true, data: mockSlideshows })
