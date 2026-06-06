@@ -702,6 +702,47 @@ class TestSlideshowItemAPI:
         deleted_item = db.session.get(SlideshowItem, item.id)
         assert deleted_item.is_active is False
 
+    def test_delete_inactive_slideshow_item(
+        self, client, authenticated_user, sample_slideshow_with_items
+    ):
+        """Test that deleting an inactive item permanently removes it."""
+        slideshow, items = sample_slideshow_with_items
+        item = items[0]
+        item_id = item.id
+
+        # Mark the item as inactive first (equivalent to a prior soft delete)
+        item.is_active = False
+        db.session.commit()
+
+        response = client.delete(f"/api/v1/slideshow-items/{item_id}")
+        assert response.status_code == 200
+
+        data = response.get_json()
+        assert data["success"] is True
+
+        # Verify the item is permanently removed from the database
+        assert db.session.get(SlideshowItem, item_id) is None
+
+    def test_delete_active_then_inactive_slideshow_item(
+        self, client, authenticated_user, sample_slideshow_with_items
+    ):
+        """Test the two-stage delete: first soft-delete, then hard delete."""
+        slideshow, items = sample_slideshow_with_items
+        item = items[0]
+        item_id = item.id
+
+        # First delete: soft delete (item becomes inactive)
+        response = client.delete(f"/api/v1/slideshow-items/{item_id}")
+        assert response.status_code == 200
+        soft_deleted = db.session.get(SlideshowItem, item_id)
+        assert soft_deleted is not None
+        assert soft_deleted.is_active is False
+
+        # Second delete: hard delete (item is permanently removed)
+        response = client.delete(f"/api/v1/slideshow-items/{item_id}")
+        assert response.status_code == 200
+        assert db.session.get(SlideshowItem, item_id) is None
+
     def test_reorder_slideshow_item(
         self, client, authenticated_user, sample_slideshow_with_items
     ):

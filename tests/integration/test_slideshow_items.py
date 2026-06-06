@@ -1209,6 +1209,64 @@ class TestSlideshowItems:
         inactive_badge = row.locator(".badge", has_text="Inactive")
         expect(inactive_badge).to_be_visible(timeout=5000)
 
+    def test_delete_inactive_item_permanently(
+        self,
+        enhanced_page: Page,
+        servers: dict,
+        test_database: dict,
+        test_slideshow: dict,
+        http_client,
+        auth_headers,
+    ):
+        """Test that deleting an inactive item permanently removes it."""
+        page = enhanced_page
+        vite_url = servers["vite_url"]
+        slideshow_id = test_slideshow["id"]
+
+        # Create an item via API
+        response = http_client.post(
+            f"/api/v1/slideshows/{slideshow_id}/items",
+            json={
+                "title": "Inactive Item To Delete",
+                "content_type": "text",
+                "content_text": "This inactive item will be deleted",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code in [200, 201]
+        item_id = response.json()["data"]["id"]
+
+        # Soft-delete the item via API so it is inactive
+        response = http_client.delete(
+            f"/api/v1/slideshow-items/{item_id}",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+
+        # Login and navigate to slideshow detail page
+        self._login(page, vite_url, test_database)
+        page.goto(f"{vite_url}/admin/slideshows/{slideshow_id}")
+        page.wait_for_load_state("domcontentloaded", timeout=10000)
+
+        # The item should be visible and marked as Inactive
+        row = page.locator("tr:has-text('Inactive Item To Delete')")
+        expect(row).to_be_visible(timeout=10000)
+        inactive_badge = row.locator(".badge", has_text="Inactive")
+        expect(inactive_badge).to_be_visible(timeout=5000)
+
+        # Set up dialog handler to accept the confirmation
+        page.on("dialog", lambda dialog: dialog.accept())
+
+        # Click Delete button on the inactive item
+        row.locator("button[title='Delete']").click()
+
+        # The item should be permanently removed from the list
+        page.wait_for_timeout(1000)  # Allow time for API call and UI refresh
+        expect(
+            page.locator("tr:has-text('Inactive Item To Delete')")
+        ).to_have_count(0, timeout=10000)
+
     def test_reorder_items_move_up(
         self,
         enhanced_page: Page,
