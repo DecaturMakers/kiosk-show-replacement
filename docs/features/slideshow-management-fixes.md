@@ -95,5 +95,10 @@ This is a bug fix, so per the feature guidelines it begins with regression tests
   - Task 1.3: Admin UI shows a "permanently delete ... cannot be undone" confirmation for inactive items; frontend unit test added.
   - Task 1.4: All tests passing — 671 unit, 173 integration, 133 frontend; `format`, `lint`, `type_check`, frontend `type-check`/`lint` clean.
   - Side quest (human-approved): black 26.5.x formats for Python 3.14 (PEP 758 except clauses, string hugging) which mypy rejected under `mypy.ini` `python_version = 3.13`. Resolved by embracing the new black style: `mypy.ini` now targets 3.14 and the stale `black!=26.1.0` exclusion was removed from `noxfile.py`.
-- [ ] Milestone 2: Duplicate slideshow
+- [x] Milestone 2: Duplicate slideshow (2026-06-06)
+  - Task 2.1: `StorageManager.copy_file_to_slideshow()` added with unit tests (happy path, uploads/-prefixed paths, missing source).
+  - Task 2.2: `POST /api/v1/slideshows/<id>/duplicate` endpoint added; copies settings and all items (including inactive), copies uploaded files, never copies `is_default`, owner is the current user, single transaction with file cleanup on failure. Nine unit tests.
+  - Task 2.3: Duplicate button on `/admin/slideshows` with `window.prompt()` name dialog (pre-filled `"{name} (Copy)"`), `apiClient.duplicateSlideshow()`, `useApi` routing, and four frontend unit tests.
+  - Task 2.4: Three Playwright integration tests (success including inactive-item copying, cancelled prompt, duplicate-name error).
+  - Task 2.5: All tests passing — 683 unit, 176 integration, 137 frontend; `format`, `lint`, `type_check`, frontend `type-check`/`lint` clean.
 - [ ] Milestone 3: Acceptance Criteria
