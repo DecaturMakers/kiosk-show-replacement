@@ -260,9 +260,7 @@ class TestStorageManager:
             )
             assert new_path is None
             # Nothing was copied into the upload folder
-            assert [
-                p for p in Path(temp_storage_dir).rglob("*") if p.is_file()
-            ] == []
+            assert [p for p in Path(temp_storage_dir).rglob("*") if p.is_file()] == []
         finally:
             secret_file.unlink()
             outside_dir.rmdir()
