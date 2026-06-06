@@ -101,4 +101,8 @@ This is a bug fix, so per the feature guidelines it begins with regression tests
   - Task 2.3: Duplicate button on `/admin/slideshows` with `window.prompt()` name dialog (pre-filled `"{name} (Copy)"`), `apiClient.duplicateSlideshow()`, `useApi` routing, and four frontend unit tests.
   - Task 2.4: Three Playwright integration tests (success including inactive-item copying, cancelled prompt, duplicate-name error).
   - Task 2.5: All tests passing — 683 unit, 176 integration, 137 frontend; `format`, `lint`, `type_check`, frontend `type-check`/`lint` clean.
-- [ ] Milestone 3: Acceptance Criteria
+- [x] Milestone 3: Acceptance Criteria (2026-06-06)
+  - Task 3.1: Documentation updated — `docs/api.rst` (duplicate endpoint, two-stage item delete) and `docs/usage.rst` (Duplicating Slideshows section, slide-removal semantics). `README.md` and `CLAUDE.md` needed no changes.
+  - Task 3.2: Coverage review added tests for the duplicate endpoint's no-body, unique-constraint-backstop, and commit-failure/file-cleanup paths. Only the IntegrityError handler's file-cleanup loop remains uncovered (unreachable in practice; kept as defense-in-depth).
+  - Task 3.3: Full pass — 686 unit, 176 integration, 137 frontend; `format`, `lint`, `type_check`, docs build, frontend `type-check`/`lint`/`build` all clean.
+  - Task 3.4: Version bumped 0.3.5 → 0.4.0; feature document moved to `docs/features/completed/`.

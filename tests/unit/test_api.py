@@ -664,9 +664,7 @@ class TestSlideshowDuplicateAPI:
         assert [p for p in tmp_path.rglob("*") if p.is_file()] == [source_file]
 
         # No duplicate slideshow was persisted
-        assert (
-            Slideshow.query.filter_by(name="Doomed Copy").first() is None
-        )
+        assert Slideshow.query.filter_by(name="Doomed Copy").first() is None
 
     def test_duplicate_slideshow_not_found(self, client, authenticated_user):
         """Test duplicating a non-existent slideshow returns 404."""
