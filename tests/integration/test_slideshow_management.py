@@ -280,6 +280,160 @@ class TestSlideshowManagement:
         )
         assert check_response.status_code == 404
 
+    def test_duplicate_slideshow_success(
+        self,
+        enhanced_page: Page,
+        servers: dict,
+        test_database: dict,
+        http_client,
+        auth_headers,
+    ):
+        """Test duplicating a slideshow copies its items, including inactive."""
+        page = enhanced_page
+        vite_url = servers["vite_url"]
+
+        # Create a slideshow with two items via API
+        slideshow_name = f"Duplicate Source {int(time.time() * 1000)}"
+        response = http_client.post(
+            "/api/v1/slideshows",
+            json={
+                "name": slideshow_name,
+                "description": "Slideshow to be duplicated",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code in [200, 201]
+        slideshow_id = response.json()["data"]["id"]
+
+        for title in ["Dup Item One", "Dup Item Two"]:
+            response = http_client.post(
+                f"/api/v1/slideshows/{slideshow_id}/items",
+                json={
+                    "title": title,
+                    "content_type": "text",
+                    "content_text": f"Content of {title}",
+                    "is_active": True,
+                },
+                headers=auth_headers,
+            )
+            assert response.status_code in [200, 201]
+            item_id = response.json()["data"]["id"]
+
+        # Soft-delete the second item so the source has one inactive item
+        response = http_client.delete(
+            f"/api/v1/slideshow-items/{item_id}",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+
+        # Login and navigate to slideshows page
+        self._login(page, vite_url, test_database)
+        page.goto(f"{vite_url}/admin/slideshows")
+        page.wait_for_load_state("domcontentloaded", timeout=10000)
+
+        row = page.locator(f"tr:has-text('{slideshow_name}')")
+        expect(row).to_be_visible(timeout=10000)
+
+        # Accept the name prompt with a new name
+        duplicate_name = f"Duplicated Copy {int(time.time() * 1000)}"
+        page.on("dialog", lambda dialog: dialog.accept(duplicate_name))
+
+        # Click the Duplicate button
+        row.locator("button[title='Duplicate']").click()
+
+        # The duplicated slideshow should appear in the list
+        expect(page.locator(f"tr:has-text('{duplicate_name}')")).to_be_visible(
+            timeout=10000
+        )
+
+        # Verify via API that the duplicate has both items, one inactive
+        response = http_client.get("/api/v1/slideshows", headers=auth_headers)
+        assert response.status_code == 200
+        duplicate = next(
+            s for s in response.json()["data"] if s["name"] == duplicate_name
+        )
+        response = http_client.get(
+            f"/api/v1/slideshows/{duplicate['id']}/items?include_inactive=true",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        items = response.json()["data"]
+        assert len(items) == 2
+        items_by_title = {item["title"]: item for item in items}
+        assert items_by_title["Dup Item One"]["is_active"] is True
+        assert items_by_title["Dup Item Two"]["is_active"] is False
+
+        # Cleanup: delete both slideshows
+        for cleanup_id in [slideshow_id, duplicate["id"]]:
+            http_client.delete(
+                f"/api/v1/slideshows/{cleanup_id}",
+                headers=auth_headers,
+            )
+
+    def test_duplicate_slideshow_cancel(
+        self,
+        enhanced_page: Page,
+        servers: dict,
+        test_database: dict,
+        test_slideshow: dict,
+        http_client,
+        auth_headers,
+    ):
+        """Test cancelling the duplicate prompt does nothing."""
+        page = enhanced_page
+        vite_url = servers["vite_url"]
+        slideshow_name = test_slideshow["name"]
+
+        # Login and navigate to slideshows page
+        self._login(page, vite_url, test_database)
+        page.goto(f"{vite_url}/admin/slideshows")
+        page.wait_for_load_state("domcontentloaded", timeout=10000)
+
+        row = page.locator(f"tr:has-text('{slideshow_name}')")
+        expect(row).to_be_visible(timeout=10000)
+
+        # Count slideshows before, then dismiss the prompt
+        response = http_client.get("/api/v1/slideshows", headers=auth_headers)
+        count_before = len(response.json()["data"])
+
+        page.on("dialog", lambda dialog: dialog.dismiss())
+        row.locator("button[title='Duplicate']").click()
+
+        # Give the UI a moment, then verify nothing was created
+        page.wait_for_timeout(1000)
+        response = http_client.get("/api/v1/slideshows", headers=auth_headers)
+        assert len(response.json()["data"]) == count_before
+
+    def test_duplicate_slideshow_duplicate_name_error(
+        self,
+        enhanced_page: Page,
+        servers: dict,
+        test_database: dict,
+        test_slideshow: dict,
+    ):
+        """Test duplicating with an existing name shows an error."""
+        page = enhanced_page
+        vite_url = servers["vite_url"]
+        slideshow_name = test_slideshow["name"]
+
+        # Login and navigate to slideshows page
+        self._login(page, vite_url, test_database)
+        page.goto(f"{vite_url}/admin/slideshows")
+        page.wait_for_load_state("domcontentloaded", timeout=10000)
+
+        row = page.locator(f"tr:has-text('{slideshow_name}')")
+        expect(row).to_be_visible(timeout=10000)
+
+        # Accept the prompt with the source slideshow's own name
+        page.on("dialog", lambda dialog: dialog.accept(slideshow_name))
+        row.locator("button[title='Duplicate']").click()
+
+        # An error alert should appear
+        alert = page.locator(".alert-danger")
+        expect(alert).to_be_visible(timeout=10000)
+        expect(alert).to_contain_text("already exists")
+
     def test_create_slideshow_with_default_checked(
         self,
         enhanced_page: Page,

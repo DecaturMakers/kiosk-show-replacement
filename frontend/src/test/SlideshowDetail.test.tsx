@@ -122,6 +122,11 @@ describe('SlideshowDetail', () => {
     mockNavigate.mockClear();
   });
 
+  afterEach(() => {
+    // Restore window.confirm/window.prompt spies even if a test fails
+    vi.restoreAllMocks();
+  });
+
   it('renders slideshow details correctly', async () => {
     mockUseParams.mockReturnValue({ id: '1' });
     mockApiCall
@@ -199,9 +204,8 @@ describe('SlideshowDetail', () => {
       .mockResolvedValueOnce({ success: true, data: mockSlideshow })
       .mockResolvedValueOnce({ success: true, data: mockItems.slice(1) });
 
-    // Mock window.confirm
-    const originalConfirm = window.confirm;
-    window.confirm = vi.fn(() => true);
+    // Spy on window.confirm; restored by afterEach even if the test fails
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     render(
       <TestWrapper>
@@ -217,14 +221,47 @@ describe('SlideshowDetail', () => {
     const deleteButtons = screen.getAllByTitle('Delete');
     fireEvent.click(deleteButtons[0]);
 
-    expect(window.confirm).toHaveBeenCalledWith('Are you sure you want to delete "Test Image"?');
+    expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to delete "Test Image"?');
 
     await waitFor(() => {
       expect(mockApiCall).toHaveBeenCalledWith('/api/v1/slideshow-items/1', { method: 'DELETE' });
     });
+  });
 
-    // Cleanup
-    window.confirm = originalConfirm;
+  it('handles delete of inactive item with permanent-delete confirmation', async () => {
+    const inactiveItem = { ...mockItems[0], is_active: false };
+    mockUseParams.mockReturnValue({ id: '1' });
+    mockApiCall
+      .mockResolvedValueOnce({ success: true, data: mockSlideshow })
+      .mockResolvedValueOnce({ success: true, data: [inactiveItem] })
+      .mockResolvedValueOnce({ success: true })
+      .mockResolvedValueOnce({ success: true, data: mockSlideshow })
+      .mockResolvedValueOnce({ success: true, data: [] });
+
+    // Spy on window.confirm; restored by afterEach even if the test fails
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(
+      <TestWrapper>
+        <SlideshowDetail />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Image')).toBeInTheDocument();
+    });
+
+    // Click delete button for the inactive item
+    const deleteButtons = screen.getAllByTitle('Delete');
+    fireEvent.click(deleteButtons[0]);
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'Are you sure you want to permanently delete "Test Image"? This cannot be undone.'
+    );
+
+    await waitFor(() => {
+      expect(mockApiCall).toHaveBeenCalledWith('/api/v1/slideshow-items/1', { method: 'DELETE' });
+    });
   });
 
   it('handles add new item', async () => {

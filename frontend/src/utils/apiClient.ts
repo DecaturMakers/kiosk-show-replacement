@@ -301,6 +301,13 @@ class ApiClient {
     });
   }
 
+  async duplicateSlideshow(id: number, name: string): Promise<ApiResponse<Slideshow>> {
+    return this.requestNoRetry<Slideshow>(`/api/v1/slideshows/${id}/duplicate`, {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+  }
+
   // Slideshow item methods
   async getSlideshowItems(slideshowId: number): Promise<ApiResponse<SlideshowItem[]>> {
     return this.request<SlideshowItem[]>(`/api/v1/slideshows/${slideshowId}/items`);

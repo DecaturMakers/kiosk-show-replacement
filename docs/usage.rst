@@ -16,7 +16,7 @@ The admin interface is a modern React application accessible at ``/admin`` (e.g.
 
 **Features:**
 * Dashboard with system statistics and quick actions
-* Complete slideshow management (create, edit, delete, preview)
+* Complete slideshow management (create, edit, duplicate, delete, preview)
 * Display management and assignment
 * Assignment history and audit trails
 * Bulk operations for display management
@@ -62,6 +62,15 @@ Creating Slideshows
 4. Add slides with images, videos, or web content
 5. Configure display settings (duration, transitions, etc.)
 
+Duplicating Slideshows
+~~~~~~~~~~~~~~~~~~~~~~
+
+To copy an existing slideshow, click the Duplicate button on the Slideshows
+page and enter a name for the copy. The duplicate contains the same settings
+and slides as the original (uploaded images and videos are copied, so the
+two slideshows are fully independent). The copy is never the default
+slideshow, regardless of the original's setting.
+
 Managing Slides
 ~~~~~~~~~~~~~~~
 
@@ -72,6 +81,10 @@ For each slideshow, you can:
 * Edit slide content and settings
 * Remove slides
 * Preview the slideshow
+
+Removing a slide deactivates it rather than deleting it, so it can be
+restored later by editing the slide and marking it active. Deleting an
+inactive slide removes it permanently.
 
 Video Format Requirements
 ~~~~~~~~~~~~~~~~~~~~~~~~~

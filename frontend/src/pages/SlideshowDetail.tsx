@@ -56,8 +56,11 @@ const SlideshowDetail: React.FC = () => {
     }
   };
 
-  const handleDeleteItem = async (itemId: number, itemName: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${itemName}"?`)) {
+  const handleDeleteItem = async (itemId: number, itemName: string, isActive: boolean) => {
+    const message = isActive
+      ? `Are you sure you want to delete "${itemName}"?`
+      : `Are you sure you want to permanently delete "${itemName}"? This cannot be undone.`;
+    if (!window.confirm(message)) {
       return;
     }
 
@@ -423,7 +426,7 @@ const SlideshowDetail: React.FC = () => {
                             <Button
                               variant="outline-danger"
                               size="sm"
-                              onClick={() => handleDeleteItem(item.id, item.title || 'this item')}
+                              onClick={() => handleDeleteItem(item.id, item.title || 'this item', item.is_active)}
                               title="Delete"
                             >
                               <i className="bi bi-trash"></i>

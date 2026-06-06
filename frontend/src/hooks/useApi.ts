@@ -60,6 +60,14 @@ export const useApi = (): UseApiResult => {
         return await apiClient.setDefaultSlideshow(slideshowId);
       }
 
+      // Match /api/v1/slideshows/{id}/duplicate
+      const duplicateMatch = url.match(/^\/api\/v1\/slideshows\/(\d+)\/duplicate$/);
+      if (duplicateMatch && method === 'POST') {
+        const slideshowId = parseInt(duplicateMatch[1]);
+        const data = JSON.parse(options?.body as string);
+        return await apiClient.duplicateSlideshow(slideshowId, data.name);
+      }
+
       // Match /api/v1/slideshows/{id}/items for POST (create item)
       const createItemMatch = url.match(/^\/api\/v1\/slideshows\/(\d+)\/items$/);
       if (createItemMatch && method === 'POST') {

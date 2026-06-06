@@ -471,6 +471,336 @@ class TestSlideshowAPI:
         assert new_slideshow.is_default is True
 
 
+class TestSlideshowDuplicateAPI:
+    """Test the slideshow duplicate API endpoint."""
+
+    def test_duplicate_slideshow_success(
+        self, client, authenticated_user, sample_slideshow_with_items
+    ):
+        """Test duplicating a slideshow copies settings and all items."""
+        slideshow, items = sample_slideshow_with_items
+
+        # Make one item inactive to verify inactive items are copied too
+        items[1].is_active = False
+        db.session.commit()
+
+        response = client.post(
+            f"/api/v1/slideshows/{slideshow.id}/duplicate",
+            data=json.dumps({"name": "Copied Slideshow"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 201
+        data = response.get_json()
+        assert data["success"] is True
+        assert data["data"]["name"] == "Copied Slideshow"
+        assert data["data"]["id"] != slideshow.id
+        assert data["data"]["is_default"] is False
+        assert data["data"]["owner_id"] == authenticated_user.id
+
+        # Verify slideshow settings were copied
+        duplicate = db.session.get(Slideshow, data["data"]["id"])
+        assert duplicate.description == slideshow.description
+        assert duplicate.default_item_duration == slideshow.default_item_duration
+        assert duplicate.transition_type == slideshow.transition_type
+        assert duplicate.is_active is True
+
+        # Verify all items were copied (including the inactive one),
+        # preserving order and content
+        source_items = sorted(slideshow.items, key=lambda i: i.order_index)
+        copied_items = sorted(duplicate.items, key=lambda i: i.order_index)
+        assert len(copied_items) == len(source_items)
+        for source_item, copied_item in zip(source_items, copied_items):
+            assert copied_item.id != source_item.id
+            assert copied_item.title == source_item.title
+            assert copied_item.content_type == source_item.content_type
+            assert copied_item.content_url == source_item.content_url
+            assert copied_item.content_text == source_item.content_text
+            assert copied_item.display_duration == source_item.display_duration
+            assert copied_item.order_index == source_item.order_index
+            assert copied_item.is_active == source_item.is_active
+            assert copied_item.scale_factor == source_item.scale_factor
+
+    def test_duplicate_slideshow_does_not_copy_default_flag(
+        self, client, authenticated_user, sample_slideshow
+    ):
+        """Test that duplicating the default slideshow does not copy the flag."""
+        sample_slideshow.is_default = True
+        db.session.commit()
+
+        response = client.post(
+            f"/api/v1/slideshows/{sample_slideshow.id}/duplicate",
+            data=json.dumps({"name": "Copy of Default"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 201
+        data = response.get_json()
+        assert data["data"]["is_default"] is False
+
+        # The original is still the default
+        db.session.refresh(sample_slideshow)
+        assert sample_slideshow.is_default is True
+
+    def test_duplicate_slideshow_duplicate_name(
+        self, client, authenticated_user, sample_slideshow
+    ):
+        """Test duplicating with an existing slideshow name fails."""
+        response = client.post(
+            f"/api/v1/slideshows/{sample_slideshow.id}/duplicate",
+            data=json.dumps({"name": sample_slideshow.name}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["success"] is False
+        assert "already exists" in data["message"]
+
+    def test_duplicate_slideshow_missing_name(
+        self, client, authenticated_user, sample_slideshow
+    ):
+        """Test duplicating without a name fails."""
+        response = client.post(
+            f"/api/v1/slideshows/{sample_slideshow.id}/duplicate",
+            data=json.dumps({"name": "   "}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["success"] is False
+
+    def test_duplicate_slideshow_no_data(
+        self, client, authenticated_user, sample_slideshow
+    ):
+        """Test duplicating without a request body fails."""
+        response = client.post(
+            f"/api/v1/slideshows/{sample_slideshow.id}/duplicate",
+            data=json.dumps(None),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["success"] is False
+
+    def test_duplicate_slideshow_name_conflict_with_inactive(
+        self, client, authenticated_user, sample_slideshow
+    ):
+        """Test the unique-constraint backstop for name conflicts.
+
+        An inactive slideshow's name passes the active-only duplicate-name
+        check but still violates the (name, owner_id) unique constraint when
+        the new row is flushed, exercising the IntegrityError handler.
+        """
+        inactive = Slideshow(
+            name="Shadowed Name",
+            owner_id=authenticated_user.id,
+            is_active=False,
+        )
+        db.session.add(inactive)
+        db.session.commit()
+
+        response = client.post(
+            f"/api/v1/slideshows/{sample_slideshow.id}/duplicate",
+            data=json.dumps({"name": "Shadowed Name"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["success"] is False
+        assert "already exists" in data["message"]
+
+    @patch("kiosk_show_replacement.api.v1.get_storage_manager")
+    def test_duplicate_slideshow_cleanup_on_failure(
+        self,
+        mock_get_storage,
+        client,
+        authenticated_user,
+        sample_slideshow,
+        tmp_path,
+    ):
+        """Test that copied files are removed when the duplicate fails."""
+        from kiosk_show_replacement.storage import StorageManager
+
+        storage = StorageManager(str(tmp_path))
+        mock_get_storage.return_value = storage
+
+        # Give the source a file-backed item so the duplicate copies a file
+        source_dir = (
+            tmp_path / "images" / str(authenticated_user.id) / str(sample_slideshow.id)
+        )
+        source_dir.mkdir(parents=True)
+        source_file = source_dir / "photo.png"
+        source_file.write_bytes(b"fake png content")
+        item = SlideshowItem(
+            slideshow_id=sample_slideshow.id,
+            title="Uploaded Image",
+            content_type="image",
+            content_file_path=str(source_file.relative_to(tmp_path)),
+            order_index=1,
+            is_active=True,
+        )
+        db.session.add(item)
+        db.session.commit()
+
+        # Fail the final commit, after items are processed and files copied
+        with patch.object(
+            db.session, "commit", side_effect=RuntimeError("simulated commit failure")
+        ):
+            response = client.post(
+                f"/api/v1/slideshows/{sample_slideshow.id}/duplicate",
+                data=json.dumps({"name": "Doomed Copy"}),
+                content_type="application/json",
+            )
+
+        assert response.status_code == 500
+        data = response.get_json()
+        assert data["success"] is False
+
+        # The copied file was cleaned up; only the source file remains
+        assert [p for p in tmp_path.rglob("*") if p.is_file()] == [source_file]
+
+        # No duplicate slideshow was persisted
+        assert Slideshow.query.filter_by(name="Doomed Copy").first() is None
+
+    def test_duplicate_slideshow_not_found(self, client, authenticated_user):
+        """Test duplicating a non-existent slideshow returns 404."""
+        response = client.post(
+            "/api/v1/slideshows/99999/duplicate",
+            data=json.dumps({"name": "Copy of Nothing"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 404
+
+    def test_duplicate_inactive_slideshow_not_found(
+        self, client, authenticated_user, sample_slideshow
+    ):
+        """Test duplicating a soft-deleted slideshow returns 404."""
+        sample_slideshow.is_active = False
+        db.session.commit()
+
+        response = client.post(
+            f"/api/v1/slideshows/{sample_slideshow.id}/duplicate",
+            data=json.dumps({"name": "Copy of Deleted"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 404
+
+    def test_duplicate_slideshow_requires_auth(self, client, sample_slideshow):
+        """Test duplicating requires authentication."""
+        response = client.post(
+            f"/api/v1/slideshows/{sample_slideshow.id}/duplicate",
+            data=json.dumps({"name": "Unauthenticated Copy"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 401
+
+    @patch("kiosk_show_replacement.api.v1.get_storage_manager")
+    def test_duplicate_slideshow_copies_uploaded_files(
+        self,
+        mock_get_storage,
+        client,
+        authenticated_user,
+        sample_slideshow,
+        tmp_path,
+    ):
+        """Test duplicating copies uploaded media files on disk."""
+        from kiosk_show_replacement.storage import StorageManager
+
+        storage = StorageManager(str(tmp_path))
+        mock_get_storage.return_value = storage
+
+        # Create a fake uploaded image in the source slideshow's directory
+        source_dir = (
+            tmp_path / "images" / str(authenticated_user.id) / str(sample_slideshow.id)
+        )
+        source_dir.mkdir(parents=True)
+        source_file = source_dir / "photo.png"
+        source_file.write_bytes(b"fake png content")
+        relative_path = str(source_file.relative_to(tmp_path))
+
+        item = SlideshowItem(
+            slideshow_id=sample_slideshow.id,
+            title="Uploaded Image",
+            content_type="image",
+            content_file_path=relative_path,
+            order_index=1,
+            is_active=True,
+        )
+        db.session.add(item)
+        db.session.commit()
+
+        response = client.post(
+            f"/api/v1/slideshows/{sample_slideshow.id}/duplicate",
+            data=json.dumps({"name": "Copy With Files"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 201
+        data = response.get_json()
+        duplicate = db.session.get(Slideshow, data["data"]["id"])
+
+        copied_item = next(i for i in duplicate.items if i.title == "Uploaded Image")
+        # The copy references a new file in the duplicate's directory
+        assert copied_item.content_file_path is not None
+        assert copied_item.content_file_path != relative_path
+        assert copied_item.content_file_path.startswith(
+            f"images/{authenticated_user.id}/{duplicate.id}/"
+        )
+        copied_file = tmp_path / copied_item.content_file_path
+        assert copied_file.is_file()
+        assert copied_file.read_bytes() == b"fake png content"
+        # The original file is untouched
+        assert source_file.is_file()
+
+    @patch("kiosk_show_replacement.api.v1.get_storage_manager")
+    def test_duplicate_slideshow_tolerates_missing_file(
+        self,
+        mock_get_storage,
+        client,
+        authenticated_user,
+        sample_slideshow,
+        tmp_path,
+    ):
+        """Test duplicating succeeds even if a source file is missing."""
+        from kiosk_show_replacement.storage import StorageManager
+
+        storage = StorageManager(str(tmp_path))
+        mock_get_storage.return_value = storage
+
+        item = SlideshowItem(
+            slideshow_id=sample_slideshow.id,
+            title="Missing File Image",
+            content_type="image",
+            content_file_path="images/1/1/does_not_exist.png",
+            order_index=1,
+            is_active=True,
+        )
+        db.session.add(item)
+        db.session.commit()
+
+        response = client.post(
+            f"/api/v1/slideshows/{sample_slideshow.id}/duplicate",
+            data=json.dumps({"name": "Copy Missing File"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 201
+        data = response.get_json()
+        duplicate = db.session.get(Slideshow, data["data"]["id"])
+        copied_item = next(
+            i for i in duplicate.items if i.title == "Missing File Image"
+        )
+        # The item is copied but without a file reference
+        assert copied_item.content_file_path is None
+
+
 class TestSlideshowItemAPI:
     """Test slideshow item management API endpoints."""
 
@@ -701,6 +1031,47 @@ class TestSlideshowItemAPI:
         # Verify item is soft-deleted
         deleted_item = db.session.get(SlideshowItem, item.id)
         assert deleted_item.is_active is False
+
+    def test_delete_inactive_slideshow_item(
+        self, client, authenticated_user, sample_slideshow_with_items
+    ):
+        """Test that deleting an inactive item permanently removes it."""
+        slideshow, items = sample_slideshow_with_items
+        item = items[0]
+        item_id = item.id
+
+        # Mark the item as inactive first (equivalent to a prior soft delete)
+        item.is_active = False
+        db.session.commit()
+
+        response = client.delete(f"/api/v1/slideshow-items/{item_id}")
+        assert response.status_code == 200
+
+        data = response.get_json()
+        assert data["success"] is True
+
+        # Verify the item is permanently removed from the database
+        assert db.session.get(SlideshowItem, item_id) is None
+
+    def test_delete_active_then_inactive_slideshow_item(
+        self, client, authenticated_user, sample_slideshow_with_items
+    ):
+        """Test the two-stage delete: first soft-delete, then hard delete."""
+        slideshow, items = sample_slideshow_with_items
+        item = items[0]
+        item_id = item.id
+
+        # First delete: soft delete (item becomes inactive)
+        response = client.delete(f"/api/v1/slideshow-items/{item_id}")
+        assert response.status_code == 200
+        soft_deleted = db.session.get(SlideshowItem, item_id)
+        assert soft_deleted is not None
+        assert soft_deleted.is_active is False
+
+        # Second delete: hard delete (item is permanently removed)
+        response = client.delete(f"/api/v1/slideshow-items/{item_id}")
+        assert response.status_code == 200
+        assert db.session.get(SlideshowItem, item_id) is None
 
     def test_reorder_slideshow_item(
         self, client, authenticated_user, sample_slideshow_with_items

@@ -1257,12 +1257,10 @@ class TestDisplayPlayback:
 
                 while time.time() - start_time < max_wait:
                     # Check if video has loaded class (opacity: 1)
-                    has_loaded_class = page.evaluate(
-                        """() => {
+                    has_loaded_class = page.evaluate("""() => {
                             const video = document.querySelector('video');
                             return video && video.classList.contains('loaded');
-                        }"""
-                    )
+                        }""")
                     if has_loaded_class:
                         video_visible = True
                         break
@@ -1957,12 +1955,10 @@ class TestDisplayPlayback:
                 slide_element = page.locator(".slide.active")
                 assert slide_element.is_visible(), "Active slide should be visible"
 
-                has_fade_class = page.evaluate(
-                    """() => {
+                has_fade_class = page.evaluate("""() => {
                         const slide = document.querySelector('.slide.active');
                         return slide && slide.classList.contains('fade-transition');
-                    }"""
-                )
+                    }""")
                 assert (
                     has_fade_class
                 ), "Slide with transition_type='fade' should have 'fade-transition' class"
@@ -2061,12 +2057,10 @@ class TestDisplayPlayback:
                 slide_element = page.locator(".slide.active")
                 assert slide_element.is_visible(), "Active slide should be visible"
 
-                has_slide_class = page.evaluate(
-                    """() => {
+                has_slide_class = page.evaluate("""() => {
                         const slide = document.querySelector('.slide.active');
                         return slide && slide.classList.contains('slide-transition');
-                    }"""
-                )
+                    }""")
                 assert has_slide_class, (
                     "Slide with transition_type='slide' should have 'slide-transition' "
                     "class"
@@ -2166,12 +2160,10 @@ class TestDisplayPlayback:
                 slide_element = page.locator(".slide.active")
                 assert slide_element.is_visible(), "Active slide should be visible"
 
-                has_zoom_class = page.evaluate(
-                    """() => {
+                has_zoom_class = page.evaluate("""() => {
                         const slide = document.querySelector('.slide.active');
                         return slide && slide.classList.contains('zoom-transition');
-                    }"""
-                )
+                    }""")
                 assert has_zoom_class, (
                     "Slide with transition_type='zoom' should have 'zoom-transition' "
                     "class"
@@ -2271,12 +2263,10 @@ class TestDisplayPlayback:
                 slide_element = page.locator(".slide.active")
                 assert slide_element.is_visible(), "Active slide should be visible"
 
-                has_none_class = page.evaluate(
-                    """() => {
+                has_none_class = page.evaluate("""() => {
                         const slide = document.querySelector('.slide.active');
                         return slide && slide.classList.contains('none-transition');
-                    }"""
-                )
+                    }""")
                 assert has_none_class, (
                     "Slide with transition_type='none' should have 'none-transition' "
                     "class"

@@ -54,6 +54,37 @@ const Slideshows: React.FC = () => {
     }
   };
 
+  const handleDuplicate = async (id: number, name: string) => {
+    const newName = window.prompt(
+      'Enter a name for the duplicated slideshow:',
+      `${name} (Copy)`
+    );
+    if (newName === null) {
+      return;
+    }
+    if (!newName.trim()) {
+      setError('A name is required to duplicate a slideshow');
+      return;
+    }
+
+    try {
+      const response = await apiCall(`/api/v1/slideshows/${id}/duplicate`, {
+        method: 'POST',
+        body: JSON.stringify({ name: newName.trim() })
+      });
+
+      if (response.success) {
+        // Refresh the list to show the new slideshow
+        fetchSlideshows();
+      } else {
+        setError(response.error || 'Failed to duplicate slideshow');
+      }
+    } catch (err) {
+      setError('Failed to duplicate slideshow');
+      console.error('Error duplicating slideshow:', err);
+    }
+  };
+
   const handleSetDefault = async (id: number, _name: string) => {
     try {
       const response = await apiCall(`/api/v1/slideshows/${id}/set-default`, {
@@ -212,6 +243,14 @@ const Slideshows: React.FC = () => {
                             >
                               <i className="bi bi-pencil"></i>
                             </Link>
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              onClick={() => handleDuplicate(slideshow.id, slideshow.name)}
+                              title="Duplicate"
+                            >
+                              <i className="bi bi-copy"></i>
+                            </Button>
                             {!slideshow.is_default && (
                               <Button
                                 variant="outline-info"
