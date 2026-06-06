@@ -528,12 +528,30 @@ API v1 Slideshows
 
 ``POST /api/v1/slideshows/<int:slideshow_id>/set-default``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Purpose**: Set slideshow as default  
-**Authentication**: Required  
-**Parameters**: 
+**Purpose**: Set slideshow as default
+**Authentication**: Required
+**Parameters**:
   - ``slideshow_id`` (path): Slideshow ID
 **Returns**: Success message
 **Side Effects**: Unsets previous default slideshow
+
+``POST /api/v1/slideshows/<int:slideshow_id>/duplicate``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Purpose**: Duplicate slideshow under a new name
+**Authentication**: Required
+**Parameters**:
+  - ``slideshow_id`` (path): Slideshow ID
+**Request Body**:
+  .. code-block:: json
+
+     {
+       "name": "string"
+     }
+
+**Returns**: Created slideshow object (201)
+**Side Effects**: Copies all items (including inactive ones) and uploaded
+media files into the new slideshow. The duplicate is owned by the current
+user and is never the default slideshow.
 
 API v1 Slideshow Items
 ----------------------
@@ -577,11 +595,14 @@ API v1 Slideshow Items
 
 ``DELETE /api/v1/slideshow-items/<int:item_id>``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Purpose**: Delete slideshow item (soft delete)  
-**Authentication**: Required  
-**Parameters**: 
+**Purpose**: Delete slideshow item (two-stage)
+**Authentication**: Required
+**Parameters**:
   - ``item_id`` (path): Item ID
 **Returns**: Success message
+**Side Effects**: Deleting an active item soft-deletes it (it can be
+reactivated by editing it); deleting an already-inactive item permanently
+removes it.
 
 ``POST /api/v1/slideshow-items/<int:item_id>/reorder``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
