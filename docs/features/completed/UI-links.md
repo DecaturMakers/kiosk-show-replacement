@@ -4,9 +4,9 @@ You must read, understand, and follow all instructions in `./README.md` when pla
 
 ## Overview
 
-We need to add a footer to all UI pages (everything except the actual kiosk slideshow display view) bearing the text "kiosk-show-replacement v{x.y.z} is Free and Open Source Software, Copyright 2026 Jason Antman." where `v{x.y.z}` is the current version number, `kiosk-show-replacement v{x.y.z}` is a link to https://github.com/jantman/kiosk-show-replacement and `Free and Open Source Software` is a link to https://opensource.org/license/mit.
+We need to add a footer to all UI pages (everything except the actual kiosk slideshow display view) bearing the text "kiosk-show-replacement v{x.y.z} is Free and Open Source Software, Copyright 2026 Jason Antman." where `v{x.y.z}` is the current version number, `kiosk-show-replacement v{x.y.z}` is a link to https://github.com/Decaturmakers/kiosk-show-replacement and `Free and Open Source Software` is a link to https://opensource.org/license/mit.
 
-Additionally, in the admin UI, we need to add a prominent "Help" link (in the top nav bar, perhaps?) that links to https://jantman.github.io/kiosk-show-replacement/usage.html
+Additionally, in the admin UI, we need to add a prominent "Help" link (in the top nav bar, perhaps?) that links to https://decaturmakers.github.io/kiosk-show-replacement/usage.html
 
 When this is complete we must use `poetry` to bump the patch version.
 
@@ -44,7 +44,7 @@ When this is complete we must use `poetry` to bump the patch version.
 
 #### Task 1.5: Add Help link to React navbar
 - **File**: `frontend/src/components/Navigation.tsx`
-- Add a "Help" `Nav.Link` to the right side of the navbar (before user dropdown), linking to `https://jantman.github.io/kiosk-show-replacement/usage.html` with `target="_blank"` and `rel="noopener noreferrer"`
+- Add a "Help" `Nav.Link` to the right side of the navbar (before user dropdown), linking to `https://decaturmakers.github.io/kiosk-show-replacement/usage.html` with `target="_blank"` and `rel="noopener noreferrer"`
 
 #### Task 1.6: Add tests
 - **Unit test** for version API endpoint in `tests/unit/` (verify it returns correct version, no auth required)

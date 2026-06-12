@@ -7,8 +7,8 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'kiosk-show-replacement'
-copyright = '2024, Jason Antman'
-author = 'Jason Antman'
+copyright = '2024, Jason Antman / Decatur Makers'
+author = 'Jason Antman / Decatur Makers'
 release = '0.1.0'
 
 # -- General configuration ---------------------------------------------------

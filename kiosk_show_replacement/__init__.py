@@ -23,15 +23,15 @@ testing, documentation, and deployment automation.
 # Import main application factory and database for convenience
 from .app import create_app, db
 
-__version__ = "0.3.5"
-__author__ = "Jason Antman"
+__version__ = "0.5.0"
+__author__ = "Jason Antman / Decatur Makers"
 __email__ = "jason@jasonantman.com"
 __license__ = "MIT"
 
 # Package metadata for programmatic access
 __package_name__ = "kiosk-show-replacement"
 __description__ = "A self-hosted replacement for kiosk.show"
-__url__ = "https://github.com/jantman/kiosk-show-replacement"
+__url__ = "https://github.com/Decaturmakers/kiosk-show-replacement"
 
 # Version information tuple for easy comparison
 VERSION_INFO = tuple(int(x) for x in __version__.split("."))

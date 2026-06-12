@@ -56,11 +56,11 @@ class TestUILinks:
         footer_text = footer.inner_text()
         assert "kiosk-show-replacement" in footer_text
         assert "Free and Open Source Software" in footer_text
-        assert "Copyright 2026 Jason Antman" in footer_text
+        assert "Copyright 2026 Jason Antman / Decatur Makers" in footer_text
 
         # Check GitHub link
         github_link = footer.locator(
-            "a[href='https://github.com/jantman/kiosk-show-replacement']"
+            "a[href='https://github.com/Decaturmakers/kiosk-show-replacement']"
         )
         expect(github_link).to_be_visible()
 
@@ -88,7 +88,7 @@ class TestUILinks:
         footer_text = footer.inner_text()
         assert "kiosk-show-replacement" in footer_text
         assert "Free and Open Source Software" in footer_text
-        assert "Copyright 2026 Jason Antman" in footer_text
+        assert "Copyright 2026 Jason Antman / Decatur Makers" in footer_text
 
     def test_help_link_visible_in_navbar(
         self,
@@ -104,7 +104,7 @@ class TestUILinks:
 
         # Check for Help link in navbar
         help_link = page.locator(
-            "a[href='https://jantman.github.io/kiosk-show-replacement/usage.html']"
+            "a[href='https://decaturmakers.github.io/kiosk-show-replacement/usage.html']"
         )
         expect(help_link).to_be_visible(timeout=10000)
         expect(help_link).to_have_text("Help")
