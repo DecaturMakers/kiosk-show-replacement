@@ -111,6 +111,12 @@ jobs:
       - name: Login to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
+      # GHCR image names must be lowercase, but ${{ github.repository }} preserves
+      # the owner's case (e.g. DecaturMakers). Lowercase it for use in image tags.
+      - name: Compute lowercase image name
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
@@ -132,8 +138,8 @@ jobs:
             com.github.actions.run-attempt=${{ github.run_attempt }}
             com.github.actions.run-url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           tags: |
-            ghcr.io/${{ github.repository }}:${{ needs.check-version.outputs.version }}
-            ghcr.io/${{ github.repository }}:latest
+            ${{ steps.image.outputs.name }}:${{ needs.check-version.outputs.version }}
+            ${{ steps.image.outputs.name }}:latest
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -146,12 +152,12 @@ jobs:
 
             Pull the Docker image:
             ```bash
-            docker pull ghcr.io/${{ github.repository }}:${{ needs.check-version.outputs.version }}
+            docker pull ${{ steps.image.outputs.name }}:${{ needs.check-version.outputs.version }}
             ```
 
             Or use the latest tag:
             ```bash
-            docker pull ghcr.io/${{ github.repository }}:latest
+            docker pull ${{ steps.image.outputs.name }}:latest
             ```
 
             See the [Docker image on GitHub Packages](https://github.com/${{ github.repository }}/pkgs/container/kiosk-show-replacement).

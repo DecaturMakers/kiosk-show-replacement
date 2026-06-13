@@ -209,6 +209,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # GHCR image names must be lowercase, but ${{ github.repository }} preserves
+      # the owner's case (e.g. DecaturMakers). Lowercase it for use in image tags.
+      - name: Compute lowercase image name
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
       - name: Build Docker image (multi-platform)
         uses: docker/build-push-action@v6
         with:
@@ -229,4 +235,4 @@ jobs:
             com.github.actions.run-attempt=${{ github.run_attempt }}
             com.github.actions.run-url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           tags: |
-            ghcr.io/${{ github.repository }}:ci-${{ github.sha }}
+            ${{ steps.image.outputs.name }}:ci-${{ github.sha }}
