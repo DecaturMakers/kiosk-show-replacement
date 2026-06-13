@@ -35,7 +35,7 @@ detailed instructions including environment configuration, monitoring setup, and
 .. code-block:: bash
 
    # Clone and configure
-   git clone https://github.com/jantman/kiosk-show-replacement.git
+   git clone https://github.com/Decaturmakers/kiosk-show-replacement.git
    cd kiosk-show-replacement
    cp .env.docker.example .env
    # Edit .env with your settings (SECRET_KEY, passwords, etc.)

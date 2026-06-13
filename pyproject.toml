@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "kiosk-show-replacement"
-version = "0.4.0"
+version = "0.5.0"
 description = "A self-hosted replacement for kiosk.show"
-authors = ["Jason Antman <jason@jasonantman.com>"]
+authors = ["Jason Antman / Decatur Makers <jason@jasonantman.com>"]
 license = "MIT"
 readme = "README.md"
 packages = [{include = "kiosk_show_replacement"}]
-homepage = "https://github.com/jantman/kiosk-show-replacement"
-repository = "https://github.com/jantman/kiosk-show-replacement"
+homepage = "https://github.com/Decaturmakers/kiosk-show-replacement"
+repository = "https://github.com/Decaturmakers/kiosk-show-replacement"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Web Environment",

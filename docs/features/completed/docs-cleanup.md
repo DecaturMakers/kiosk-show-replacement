@@ -97,7 +97,7 @@ Finally, update `docs/index.rst` as needed for the above changes, and then ensur
 
 **Task 2.2:** Add prominent documentation link
 - Add a "Documentation" section near the top with link to GitHub Pages
-- Format: `https://jantman.github.io/kiosk-show-replacement/`
+- Format: `https://decaturmakers.github.io/kiosk-show-replacement/`
 
 **Task 2.3:** Add brief Docker quick-start reference
 - Just enough to point users to full docs (1-2 sentences)

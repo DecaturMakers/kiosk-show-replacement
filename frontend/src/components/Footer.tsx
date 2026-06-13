@@ -57,7 +57,7 @@ const Footer: React.FC = () => {
       <div className="container text-center">
         <p className="text-muted mb-0">
           <a
-            href="https://github.com/jantman/kiosk-show-replacement"
+            href="https://github.com/Decaturmakers/kiosk-show-replacement"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -71,7 +71,7 @@ const Footer: React.FC = () => {
           >
             Free and Open Source Software
           </a>
-          , Copyright 2026 Jason Antman.
+          , Copyright 2026 Jason Antman / Decatur Makers.
         </p>
       </div>
     </footer>

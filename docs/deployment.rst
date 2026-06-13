@@ -34,7 +34,7 @@ Quick Start
 
    .. code-block:: bash
 
-      git clone https://github.com/jantman/kiosk-show-replacement.git
+      git clone https://github.com/Decaturmakers/kiosk-show-replacement.git
       cd kiosk-show-replacement
 
 2. Copy and configure the environment file:

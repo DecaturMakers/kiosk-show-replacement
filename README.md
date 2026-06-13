@@ -1,18 +1,18 @@
 # Kiosk Show Replacement
 
-[![CI](https://github.com/jantman/kiosk-show-replacement/actions/workflows/ci.yml/badge.svg)](https://github.com/jantman/kiosk-show-replacement/actions/workflows/ci.yml)
-[![Release](https://github.com/jantman/kiosk-show-replacement/actions/workflows/release.yml/badge.svg)](https://github.com/jantman/kiosk-show-replacement/actions/workflows/release.yml)
+[![CI](https://github.com/Decaturmakers/kiosk-show-replacement/actions/workflows/ci.yml/badge.svg)](https://github.com/Decaturmakers/kiosk-show-replacement/actions/workflows/ci.yml)
+[![Release](https://github.com/Decaturmakers/kiosk-show-replacement/actions/workflows/release.yml/badge.svg)](https://github.com/Decaturmakers/kiosk-show-replacement/actions/workflows/release.yml)
 
 A self-hosted digital signage solution built with Flask, serving as a replacement for the defunct kiosk.show service.
 
 ## Documentation
 
-**Full documentation is available at [https://jantman.github.io/kiosk-show-replacement/](https://jantman.github.io/kiosk-show-replacement/)**
+**Full documentation is available at [https://decaturmakers.github.io/kiosk-show-replacement/](https://decaturmakers.github.io/kiosk-show-replacement/)**
 
-- [Deployment Guide](https://jantman.github.io/kiosk-show-replacement/deployment.html) - Production setup with Docker
-- [Usage Guide](https://jantman.github.io/kiosk-show-replacement/usage.html) - Managing slideshows and displays
-- [API Reference](https://jantman.github.io/kiosk-show-replacement/api.html) - REST API documentation
-- [Development Guide](https://jantman.github.io/kiosk-show-replacement/development.html) - Local development setup
+- [Deployment Guide](https://decaturmakers.github.io/kiosk-show-replacement/deployment.html) - Production setup with Docker
+- [Usage Guide](https://decaturmakers.github.io/kiosk-show-replacement/usage.html) - Managing slideshows and displays
+- [API Reference](https://decaturmakers.github.io/kiosk-show-replacement/api.html) - REST API documentation
+- [Development Guide](https://decaturmakers.github.io/kiosk-show-replacement/development.html) - Local development setup
 
 ## Features
 
@@ -28,11 +28,11 @@ A self-hosted digital signage solution built with Flask, serving as a replacemen
 
 ## Quick Start
 
-Docker is the only supported deployment method for production. See the [Deployment Guide](https://jantman.github.io/kiosk-show-replacement/deployment.html) for detailed instructions.
+Docker is the only supported deployment method for production. See the [Deployment Guide](https://decaturmakers.github.io/kiosk-show-replacement/deployment.html) for detailed instructions.
 
 ```bash
 # Clone and configure
-git clone https://github.com/jantman/kiosk-show-replacement.git
+git clone https://github.com/Decaturmakers/kiosk-show-replacement.git
 cd kiosk-show-replacement
 cp .env.docker.example .env
 # Edit .env with your settings (SECRET_KEY, passwords, etc.)
@@ -53,7 +53,7 @@ docker-compose -f docker-compose.prod.yml up -d
 6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request
 
-For local development setup, see the [Development Guide](https://jantman.github.io/kiosk-show-replacement/development.html).
+For local development setup, see the [Development Guide](https://decaturmakers.github.io/kiosk-show-replacement/development.html).
 
 ## License
 

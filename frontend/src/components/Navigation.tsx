@@ -31,7 +31,7 @@ const Navigation: React.FC = () => {
           
           <Nav>
             <Nav.Link
-              href="https://jantman.github.io/kiosk-show-replacement/usage.html"
+              href="https://decaturmakers.github.io/kiosk-show-replacement/usage.html"
               target="_blank"
               rel="noopener noreferrer"
               className="me-2"
