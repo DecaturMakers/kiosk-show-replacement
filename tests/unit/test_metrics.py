@@ -8,6 +8,7 @@ This module tests:
 """
 
 from kiosk_show_replacement.metrics import (
+    PROMETHEUS_CONTENT_TYPE,
     MetricsCollector,
     metrics_collector,
     record_database_error,
@@ -27,6 +28,18 @@ class TestMetricsEndpoint:
         """Test metrics endpoint returns text/plain content type."""
         response = client.get("/metrics")
         assert "text/plain" in response.content_type
+
+    def test_metrics_endpoint_declares_exposition_format_version(self, app, client):
+        """Test the Content-Type names the Prometheus 0.0.4 text format.
+
+        Prometheus v3 fails a scrape whose Content-Type carries no recognized
+        format version, so the ``version`` parameter must be present, and the
+        header must not repeat ``charset``.
+        """
+        response = client.get("/metrics")
+
+        assert response.content_type == "text/plain; version=0.0.4; charset=utf-8"
+        assert response.content_type == PROMETHEUS_CONTENT_TYPE
 
     def test_metrics_contains_http_requests_help(self, app, client):
         """Test metrics output contains HTTP requests metric definition."""
