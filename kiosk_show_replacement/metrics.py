@@ -23,6 +23,13 @@ from flask import Blueprint, Flask, Response, g, request
 
 metrics_bp = Blueprint("metrics", __name__)
 
+# Content type for the Prometheus text exposition format, version 0.0.4.
+# The ``version`` parameter is required: Prometheus v3 fails a scrape whose
+# Content-Type carries no recognized format version, where v2 silently fell
+# back to this format. This is the same value as prometheus_client's
+# ``CONTENT_TYPE_LATEST``.
+PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
+
 
 class MetricsCollector:
     """Thread-safe metrics collector for Prometheus-style metrics."""
@@ -504,7 +511,9 @@ def metrics_endpoint() -> Response:
     # Add summary metrics
     output += "\n" + get_summary_metrics()
 
-    return Response(output, mimetype="text/plain; charset=utf-8")
+    # Use content_type rather than mimetype: Werkzeug appends its own
+    # charset to a mimetype, which would duplicate the parameter here.
+    return Response(output, content_type=PROMETHEUS_CONTENT_TYPE)
 
 
 # Convenience functions for recording metrics from other modules
